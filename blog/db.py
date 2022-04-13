@@ -16,8 +16,7 @@ db = SQLAlchemy()
 # SQLAlchemy 에게 어떤 종류의 데이터를 저장하고 어떤 필드를 포함하지 알려주는 데이터베이스 모델 정의
 class Post(db.Model):
     """A blog post."""
-    id = db.Column(db.Integer, primary_key=True)
-    author_id = db.Column(db.Text, nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     created = db.Column(db.DateTime, default=datetime.utcnow)
     title = db.Column(db.Text, nullable=False)
     body = db.Column(db.Text, nullable=False)

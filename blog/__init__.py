@@ -1,7 +1,7 @@
-from flask import Flask, g, render_template
 from os.path import dirname, join
+from flask import Flask, render_template
 
-from . import auth, db, blog
+from . import db, blog
 
 
 app = Flask(__name__)
@@ -14,46 +14,25 @@ app = Flask(__name__)
 # OIDC_SCOPES : Flask-OIDC 에 사용자가 로그인할 때 사용자에 대해 요청할 데이터를 알려줌
 #               (여기서는 기본 사용자의 정보(이메일, 이름 등)을 요청함)
 # SECRET_KEY : Flask 세션(쿠키)을 조작할 수 없도록 보호하는데 사용(노출되어서는 안됨)
+
 app.config.from_mapping(
     SECRET_KEY='LONG_RANDOM_STRING',
-    OIDC_CLIENT_SECRETS=join(dirname(dirname(__file__)), "client_secrets.json"),
-    OIDC_COOKIE_SECURE=False,
-    OIDC_CALLBACK_ROUTE="/oidc/callback",
-    OIDC_SCOPES=["openid", "email", "profile"],
-    OIDC_ID_TOKEN_COOKIE_NAME="oidc_token",
+    SQLALCHEMY_TRACK_MODIFICATIONS=False,
     SQLALCHEMY_DATABASE_URI="sqlite:///" + join(dirname(dirname(__file__)), "database.sqlite"),
 )
 
-auth.oidc.init_app(app)
 db.init_app(app)
 
-app.register_blueprint(auth.bp)
 app.register_blueprint(blog.bp)
 
 
-@app.before_request
-def before_request():
-    """
-    Load a user object into 'g.user' before each request.
-    """
-    if auth.oidc.user_loggedin:
-        g.user = auth.okta_client.get_user(auth.oidc.user_getfield("sub"))
-    else:
-        g.user = None
-
-
 @app.errorhandler(404)
-def page_not_found(e):
+def page_not_found():
     """Render a 404 page."""
     return render_template("404.html"), 404
 
 
 @app.errorhandler(403)
-def insufficient_permissions(e):
+def insufficient_permissions():
     """Render a 403 page."""
     return render_template("403.html"), 403
-
-
-# @app.route("/")
-# def index():
-#     return "hello world!"

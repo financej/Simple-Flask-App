@@ -1,19 +1,18 @@
-from flask import Blueprint, abort, g, render_template, redirect, request, url_for
+from flask import Blueprint, abort, render_template, redirect, request, url_for
 from slugify import slugify
 
-from .auth import oidc, okta_client
 from .db import Post, db
 
 
 bp = Blueprint("blog", __name__, url_prefix="/")
 
 
-# 데이터베이스를 쿼리하여 특정 작성자가 작성한 게시물을 찾고 날짜별로 내림차순으로 반환
-def get_posts(author_id):
+# 데이터베이스를 쿼리하여 날짜별로 내림차순으로 반환
+def get_posts():
     """
     Return all of the posts a given user created, ordered by date.
     """
-    return Post.query.filter_by(author_id=author_id).order_by(Post.created.desc())
+    return Post.query.order_by(Post.created.desc())
 
 
 @bp.route("/")
@@ -25,33 +24,29 @@ def index():
     posts_final = []
 
     for post in posts:
-        u = okta_client.get_user(post.author_id)
-        post.author_name = u.profile.firstName + " " + u.profile.lastName
         posts_final.append(post)
 
     return render_template("blog/index.html", posts=posts_final)
 
 
 @bp.route("/dashboard", methods=["GET", "POST"])
-@oidc.require_login
 def dashboard():
     """
     Render the dashboard page.
     """
     if request.method == "GET":
-        return render_template("blog/dashboard.html", posts=get_posts(g.user.id))
+        return render_template("blog/dashboard.html")
 
     post = Post(
         title=request.form.get("title"),
         body=request.form.get("body"),
-        author_id=g.user.id,
         slug=slugify(request.form.get("title"))
     )
 
     db.session.add(post)
     db.session.commit()
 
-    return render_template("blog/dashboard.html", posts=get_posts(g.user.id))
+    return render_template("blog/dashboard.html")
 
 
 # SLUG 기능은 유효한 URL 을 생성하는 방법(노션 참고)
@@ -64,9 +59,6 @@ def view_post(slug):
     if not post:
         abort(404)
 
-    u = okta_client.get_user(post.author_id)
-    post.author_name = u.profile.firstName + " " + u.profile.lastName
-
     return render_template("blog/post.html", post=post)
 
 
@@ -78,10 +70,6 @@ def edit_post(slug):
     if not post:
         abort(404)
 
-    if post.author_id != g.user.id:
-        abort(403)
-
-    post.author_name = g.user.profile.firstName + " " + g.user.profile.lastName
     if request.method == "GET":
         return render_template("blog/edit.html", post=post)
 
@@ -100,9 +88,6 @@ def delete_post(slug):
 
     if not post:
         abort(404)
-
-    if post.author_id != g.user.id:
-        abort(403)
 
     db.session.delete(post)
     db.session.commit()
