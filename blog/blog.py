@@ -35,7 +35,7 @@ def dashboard():
     Render the dashboard page.
     """
     if request.method == "GET":
-        return render_template("blog/dashboard.html")
+        return render_template("blog/dashboard.html", posts=get_posts())
 
     post = Post(
         title=request.form.get("title"),
@@ -46,7 +46,7 @@ def dashboard():
     db.session.add(post)
     db.session.commit()
 
-    return render_template("blog/dashboard.html")
+    return render_template("blog/dashboard.html", posts=get_posts())
 
 
 # SLUG 기능은 유효한 URL 을 생성하는 방법(노션 참고)

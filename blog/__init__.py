@@ -26,13 +26,15 @@ db.init_app(app)
 app.register_blueprint(blog.bp)
 
 
+# self를 넣지 않으면 TypeError: page_not_found() takes 0 positional arguments but 1 was given
+# page_not_found()는 인자를 받지 않는데 1개가 들어갔다라는 오류가 발생한다.
 @app.errorhandler(404)
-def page_not_found():
+def page_not_found(self):
     """Render a 404 page."""
     return render_template("404.html"), 404
 
 
 @app.errorhandler(403)
-def insufficient_permissions():
+def insufficient_permissions(self):
     """Render a 403 page."""
     return render_template("403.html"), 403
